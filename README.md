@@ -64,8 +64,9 @@ behaviour, **Launch at Login**, **Show Prompt**, and a link to Sound settings.
 changes while the countdown runs, the card disappears and nothing is switched.
 
 When the environment ends (lid opens, monitor disconnects, AirPods connect) the
-input you had before is restored, unless you picked another device in the
-meantime.
+input you had before is restored. If you had selected the iPhone mic by hand,
+MicLid falls back to the built-in mic instead of leaving the phone selected —
+unless you picked another device in the meantime.
 
 ## Requirements
 

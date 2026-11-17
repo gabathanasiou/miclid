@@ -93,4 +93,66 @@ final class DeciderTests: XCTestCase {
         let result = Decider.toggleDestination(current: builtIn, devices: [builtIn])
         XCTAssertEqual(result, .showMenu)
     }
+
+    func testRestoreReturnsPreviousDeviceForAppSwitch() {
+        let destination = Decider.restoreDestination(
+            current: iPhone,
+            devices: [builtIn, iPhone],
+            switchedToUID: iPhone.uid,
+            previousUID: builtIn.uid
+        )
+        XCTAssertEqual(destination?.id, builtIn.id)
+    }
+
+    func testRestoreFallsBackToBuiltInWhenPreviousDeviceIsGone() {
+        let unplugged = device(9, "USB Microphone", kAudioDeviceTransportTypeVirtual)
+        let destination = Decider.restoreDestination(
+            current: iPhone,
+            devices: [builtIn, iPhone],
+            switchedToUID: iPhone.uid,
+            previousUID: unplugged.uid
+        )
+        XCTAssertEqual(destination?.id, builtIn.id)
+    }
+
+    func testRestoreLeavesIPhoneForBuiltInWhenNoSwitchWasRecorded() {
+        let destination = Decider.restoreDestination(
+            current: iPhone,
+            devices: [builtIn, iPhone],
+            switchedToUID: nil,
+            previousUID: nil
+        )
+        XCTAssertEqual(destination?.id, builtIn.id)
+    }
+
+    func testRestoreLeavesAirPodsAlone() {
+        let destination = Decider.restoreDestination(
+            current: airPods,
+            devices: [builtIn, iPhone, airPods],
+            switchedToUID: nil,
+            previousUID: nil
+        )
+        XCTAssertNil(destination)
+    }
+
+    func testRestoreLeavesBuiltInAlone() {
+        let destination = Decider.restoreDestination(
+            current: builtIn,
+            devices: [builtIn, iPhone],
+            switchedToUID: nil,
+            previousUID: nil
+        )
+        XCTAssertNil(destination)
+    }
+
+    func testRestoreDoesNotFightAManualChoice() {
+        let teams = device(4, "Microsoft Teams Audio", kAudioDeviceTransportTypeVirtual)
+        let destination = Decider.restoreDestination(
+            current: teams,
+            devices: [builtIn, iPhone, teams],
+            switchedToUID: iPhone.uid,
+            previousUID: builtIn.uid
+        )
+        XCTAssertNil(destination)
+    }
 }

@@ -223,21 +223,22 @@ final class Controller {
     }
 
     private func restoreInputIfNeeded() {
-        guard let target = restoreTarget else { return }
-        restoreTarget = nil
-
         let devices = audio.devices()
         guard let currentID = audio.defaultInputID(),
-              let current = devices.first(where: { $0.id == currentID }),
-              current.uid == target.switchedToUID else {
+              let current = devices.first(where: { $0.id == currentID }) else {
+            restoreTarget = nil
             return
         }
 
-        let destination = target.previousUID.flatMap { uid in
-            devices.first { $0.uid == uid }
-        } ?? devices.first { $0.role == .builtIn && $0.hasInput }
+        let destination = Decider.restoreDestination(
+            current: current,
+            devices: devices,
+            switchedToUID: restoreTarget?.switchedToUID,
+            previousUID: restoreTarget?.previousUID
+        )
+        restoreTarget = nil
 
-        guard let destination else { return }
+        guard let destination, destination.id != current.id else { return }
         guard audio.setDefaultInput(destination.id) else { return }
         conditions.currentInput = destination
         Hud.shared.show(symbol: Self.symbol(for: destination.role), text: destination.name)

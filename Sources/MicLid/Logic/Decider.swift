@@ -37,4 +37,28 @@ enum Decider {
         guard let destination, destination.id != current?.id else { return .showMenu }
         return .switchTo(destination.id)
     }
+
+    static func restoreDestination(
+        current: AudioDeviceInfo?,
+        devices: [AudioDeviceInfo],
+        switchedToUID: String?,
+        previousUID: String?
+    ) -> AudioDeviceInfo? {
+        guard let current else { return nil }
+
+        if let switchedToUID, current.uid == switchedToUID {
+            if let previousUID, let previous = devices.first(where: { $0.uid == previousUID }) {
+                return previous
+            }
+            return devices.first { $0.role == .builtIn && $0.hasInput }
+        }
+
+        // The iPhone mic is a clamshell workaround, so leave it behind when the
+        // setup ends even if it was selected by hand.
+        if current.role == .iphone {
+            return devices.first { $0.role == .builtIn && $0.hasInput }
+        }
+
+        return nil
+    }
 }
