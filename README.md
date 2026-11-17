@@ -119,6 +119,10 @@ The package has no external dependencies. Detection and toggle rules live in
 `Sources/MicLid/Logic/Decider.swift` and are unit tested without touching the
 system.
 
+Considering Mac App Store distribution? See
+[docs/APP_STORE.md](docs/APP_STORE.md) for the sandbox findings and the
+required changes.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
