@@ -5,7 +5,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
     private let menu = NSMenu()
     private let controller: Controller
-    private var lastQuickToggle: Date?
+    private var iconCache: [String: NSImage] = [:]
 
     init(controller: Controller) {
         self.controller = controller
@@ -34,9 +34,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         guard let button = statusItem.button else { return }
 
         let role = controller.conditions.currentInput?.role
-        let image = NSImage(systemSymbolName: Controller.symbol(for: role), accessibilityDescription: "Microphone")
-        image?.isTemplate = true
-        button.image = image
+        button.image = icon(for: Controller.symbol(for: role))
 
         if controller.mode != .off && controller.isRecommendationActive && !controller.isSuppressed {
             button.attributedTitle = NSAttributedString(
@@ -54,6 +52,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         button.toolTip = "Microphone: \(inputName)"
         button.setAccessibilityLabel("MicLid")
         button.setAccessibilityHelp("Microphone input: \(inputName). Click to switch, right-click for options.")
+    }
+
+    private func icon(for symbol: String) -> NSImage? {
+        if let cached = iconCache[symbol] { return cached }
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Microphone")
+        image?.isTemplate = true
+        if let image { iconCache[symbol] = image }
+        return image
     }
 
     @objc private func statusItemClicked() {

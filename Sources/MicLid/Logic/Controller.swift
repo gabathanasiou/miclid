@@ -24,6 +24,9 @@ final class Controller {
     private var workspaceObservers: [NSObjectProtocol] = []
     private var defaultObservers: [NSObjectProtocol] = []
 
+    private var cachedDevices: [AudioDeviceInfo] = []
+    private var audioListDirty = true
+
     private var environmentActive = false
     private var recommendationActive = false
     private var suppressed = false
@@ -54,7 +57,10 @@ final class Controller {
             self?.onChange?()
         }
 
-        audio.onDevicesChanged = { [weak self] in self?.scheduleEvaluation() }
+        audio.onDevicesChanged = { [weak self] in
+            self?.audioListDirty = true
+            self?.scheduleEvaluation()
+        }
         audio.onDefaultInputChanged = { [weak self] in self?.scheduleEvaluation() }
         audio.startMonitoring()
 
@@ -64,6 +70,7 @@ final class Controller {
                 object: nil,
                 queue: .main
             ) { [weak self] _ in
+                self?.audioListDirty = true
                 self?.scheduleEvaluation(after: 2.0)
             }
         )
@@ -144,15 +151,24 @@ final class Controller {
     }
 
     private func evaluate() {
-        let devices = audio.devices()
         let currentID = audio.defaultInputID()
+        var devices = currentDevices()
+
+        var current = devices.first { $0.id == currentID }
+        if current == nil, currentID != nil {
+            audioListDirty = true
+            devices = currentDevices()
+            current = devices.first { $0.id == currentID }
+        }
 
         var updated = Conditions()
         updated.externalDisplays = DisplayState.externalDisplays()
         updated.lidClosed = lid.isClosed
         updated.headset = devices.first { $0.role == .airpods || $0.role == .headset }
         updated.iPhone = devices.first { $0.role == .iphone }
-        updated.currentInput = devices.first { $0.id == currentID }
+        updated.currentInput = current
+
+        let changed = updated != conditions
         conditions = updated
 
         let environment = Decider.environmentSatisfied(updated)
@@ -174,7 +190,18 @@ final class Controller {
 
         environmentActive = environment
         recommendationActive = recommendation
-        onChange?()
+
+        if changed {
+            onChange?()
+        }
+    }
+
+    private func currentDevices() -> [AudioDeviceInfo] {
+        if audioListDirty || cachedDevices.isEmpty {
+            cachedDevices = audio.devices()
+            audioListDirty = false
+        }
+        return cachedDevices
     }
 
     private func beginEpisode() {
